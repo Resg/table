@@ -1,0 +1,76 @@
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.4;
+  font-weight: 400;
+}
+
+body {
+  margin: 0;
+  background: #0b0d12;
+  color: #e8ecf3;
+}
+
+.container { padding: 16px; }
+
+.card {
+  background: #121624;
+  border: 1px solid #242b3d;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.h1 { font-size: 18px; margin: 0 0 12px 0; }
+
+.grid-shell {
+  border: 1px solid #242b3d;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.grid-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #151a2a;
+  border-bottom: 1px solid #242b3d;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #1b2233;
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  height: 36px;
+  box-sizing: border-box;
+  border-right: 1px solid #1b2233;
+}
+
+.cell:last-child { border-right: none; }
+
+.header-cell { font-weight: 600; user-select: none; }
+.header-cell button { all: unset; cursor: pointer; }
+
+.resizer {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+}
+
+.scroll {
+  height: 520px;
+  overflow: auto;
+  position: relative;
+}
+
+.checkbox { width: 14px; height: 14px; }
