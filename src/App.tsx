@@ -1,9 +1,10 @@
 import React from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Grid } from './components/Grid/core/Grid';
-import type { GridSettings } from './components/Grid/core/types';
-import { useGetPeopleQuery, useGetSettingsQuery, useSaveSettingsMutation } from './store/gridApi';
-import type { PersonRow } from './mocks/people';
+import { Grid } from '@/components/Grid/core/Grid';
+import type { GridSettings } from '@/components/Grid/core/types';
+import { createSelectColumn } from '@/components/Grid/ui';
+import { useGetPeopleQuery, useGetSettingsQuery, useSaveSettingsMutation } from '@/store/gridApi';
+import type { PersonRow } from '@/mocks/people';
 
 const GRID_ID = 'people-grid';
 
@@ -14,6 +15,7 @@ const DEFAULT_SETTINGS: GridSettings = {
   columnVisibility: {},
   sorting: [],
   rowSelection: {},
+  columnFilters: [],
 };
 
 function useDebounced<T extends (..._args: any[]) => void>(fn: T, wait = 250) {
@@ -51,6 +53,7 @@ export function App() {
         columnVisibility: settingsData.columnVisibility ?? DEFAULT_SETTINGS.columnVisibility,
         sorting: settingsData.sorting ?? DEFAULT_SETTINGS.sorting,
         rowSelection: settingsData.rowSelection ?? DEFAULT_SETTINGS.rowSelection,
+        columnFilters: settingsData.columnFilters ?? DEFAULT_SETTINGS.columnFilters,
       });
     } else {
       setLocalSettings(DEFAULT_SETTINGS);
@@ -65,38 +68,16 @@ export function App() {
 
   const columns = React.useMemo<ColumnDef<PersonRow, any>[]>(() => {
     return [
-      {
-        id: 'select',
-        header: ({ table }) => (
-          <input
-            className="checkbox"
-            type="checkbox"
-            checked={table.getIsAllRowsSelected()}
-            ref={(el) => {
-              if (!el) return;
-              el.indeterminate = table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected();
-            }}
-            onChange={table.getToggleAllRowsSelectedHandler()}
-          />
-        ),
-        cell: ({ row }) => (
-          <input
-            className="checkbox"
-            type="checkbox"
-            checked={row.getIsSelected()}
-            ref={(el) => {
-              if (!el) return;
-              el.indeterminate = row.getIsSomeSelected() && !row.getIsSelected();
-            }}
-            onChange={row.getToggleSelectedHandler()}
-          />
-        ),
-        size: 46,
-        enableSorting: false,
-        enableResizing: false,
-      },
+      createSelectColumn(),
       { accessorKey: 'name', id: 'name', header: 'Name', size: 220 },
-      { accessorKey: 'age', id: 'age', header: 'Age', size: 80 },
+      {
+        accessorKey: 'age',
+        id: 'age',
+        header: 'Age',
+        size: 80,
+        filterFn: (row, columnId, value) =>
+          String(row.getValue(columnId) ?? '').includes(String(value ?? '')),
+      },
       { accessorKey: 'country', id: 'country', header: 'Country', size: 100 },
       { accessorKey: 'department', id: 'department', header: 'Department', size: 140 },
     ];
@@ -112,6 +93,8 @@ export function App() {
     [debouncedSave]
   );
 
+  const [showFilters, setShowFilters] = React.useState(true);
+
   return (
     <div className="container">
       <div className="card">
@@ -119,6 +102,13 @@ export function App() {
         <div style={{ opacity: 0.75, marginBottom: 10 }}>
           rows: {people.length.toLocaleString()} • loading: {String(isLoading)}
         </div>
+        <button
+          className="filter-toggle"
+          type="button"
+          onClick={() => setShowFilters((prev) => !prev)}
+        >
+          {showFilters ? 'Hide filters' : 'Show filters'}
+        </button>
 
         <Grid<PersonRow>
           gridId={GRID_ID}
@@ -127,6 +117,7 @@ export function App() {
           isLoading={isLoading}
           settings={settings}
           onSettingsChange={onSettingsChange}
+          showFilters={showFilters}
           rowHeight={36}
           overscan={14}
         />

@@ -5,6 +5,7 @@ import type {
   ColumnSizingState,
   RowSelectionState,
   ColumnOrderState,
+  ColumnFiltersState,
 } from '@tanstack/react-table';
 
 export type GridId = string;
@@ -16,6 +17,7 @@ export type GridSettings = {
   columnVisibility: VisibilityState;
   sorting: SortingState;
   rowSelection: RowSelectionState;
+  columnFilters: ColumnFiltersState;
 };
 
 export type GridProps<TData> = {
@@ -27,6 +29,7 @@ export type GridProps<TData> = {
   settings: GridSettings;
   onSettingsChange: (_next: GridSettings) => void;
 
+  showFilters?: boolean;
   rowHeight?: number;
   overscan?: number;
 };

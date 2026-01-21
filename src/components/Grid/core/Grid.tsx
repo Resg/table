@@ -1,12 +1,10 @@
 import React from 'react';
-import {
-  flexRender,
-  getCoreRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from '@tanstack/react-table';
-import { useVirtualizer } from '@tanstack/react-virtual';
 import type { GridProps } from './types';
+import { useGridTable } from './createTable';
+import { useRowVirtualizer } from '../features/virtualization/useRowVirtualizer';
+import { useColumnReorder } from '../features/columns/useColumnReorder';
+import { Header } from '../ui/Header';
+import { Row } from '../ui/Row';
 
 export function Grid<TData>(props: GridProps<TData>) {
   const {
@@ -17,130 +15,35 @@ export function Grid<TData>(props: GridProps<TData>) {
     isLoading = false,
     rowHeight = 36,
     overscan = 12,
+    showFilters = true,
   } = props;
 
-  const table = useReactTable({
+  const table = useGridTable({
     data,
     columns,
-    state: {
-      sorting: settings.sorting,
-      columnVisibility: settings.columnVisibility,
-      columnSizing: settings.columnSizing,
-      columnOrder: settings.columnOrder,
-      rowSelection: settings.rowSelection,
-    },
-    enableColumnResizing: true,
-    enableMultiSort: true,
-    isMultiSortEvent: (e) => {
-      if (!e || typeof e !== 'object') return false;
-      return 'ctrlKey' in e && Boolean((e as MouseEvent).ctrlKey);
-    },
-    enableRowSelection: true,
-    onSortingChange: (updater) => {
-      const next = typeof updater === 'function' ? updater(settings.sorting) : updater;
-      onSettingsChange({ ...settings, sorting: next });
-    },
-    onColumnVisibilityChange: (updater) => {
-      const next = typeof updater === 'function' ? updater(settings.columnVisibility) : updater;
-      onSettingsChange({ ...settings, columnVisibility: next });
-    },
-    onColumnSizingChange: (updater) => {
-      const next = typeof updater === 'function' ? updater(settings.columnSizing) : updater;
-      onSettingsChange({ ...settings, columnSizing: next });
-    },
-    onColumnOrderChange: (updater) => {
-      const next = typeof updater === 'function' ? updater(settings.columnOrder) : updater;
-      onSettingsChange({ ...settings, columnOrder: next });
-    },
-    onRowSelectionChange: (updater) => {
-      const next = typeof updater === 'function' ? updater(settings.rowSelection) : updater;
-      onSettingsChange({ ...settings, rowSelection: next });
-    },
-    columnResizeMode: 'onChange',
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
+    settings,
+    onSettingsChange,
+    showFilters,
   });
 
-  const parentRef = React.useRef<HTMLDivElement | null>(null);
-  const rows = table.getRowModel().rows;
-
-  const rowVirtualizer = useVirtualizer({
-    count: rows.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => rowHeight,
+  const { handleHeaderDragStart, handleHeaderDrop, isReorderable } = useColumnReorder(table, {
+    disabledColumnIds: ['select'],
+  });
+  const { parentRef, rows, totalSize, virtualItems } = useRowVirtualizer({
+    table,
+    rowHeight,
     overscan,
   });
 
-  const totalSize = rowVirtualizer.getTotalSize();
-  const virtualItems = rowVirtualizer.getVirtualItems();
-
-  const handleHeaderDragStart = React.useCallback(
-    (e: React.DragEvent<HTMLDivElement>, columnId: string) => {
-      e.dataTransfer.setData('text/plain', columnId);
-      e.dataTransfer.effectAllowed = 'move';
-    },
-    []
-  );
-
-  const handleHeaderDrop = React.useCallback(
-    (e: React.DragEvent<HTMLDivElement>, targetId: string) => {
-      e.preventDefault();
-      const sourceId = e.dataTransfer.getData('text/plain');
-      if (!sourceId || sourceId === targetId) return;
-
-      const orderedIds = table.getAllLeafColumns().map((col) => col.id);
-      const fromIndex = orderedIds.indexOf(sourceId);
-      const toIndex = orderedIds.indexOf(targetId);
-      if (fromIndex === -1 || toIndex === -1) return;
-
-      const next = [...orderedIds];
-      next.splice(fromIndex, 1);
-      next.splice(toIndex, 0, sourceId);
-      table.setColumnOrder(next);
-    },
-    [table]
-  );
-
   return (
     <div className="grid-shell">
-      <div className="grid-header">
-        {table.getHeaderGroups().map((hg) => (
-          <div key={hg.id} className="row">
-            {hg.headers.map((header) => {
-              const col = header.column;
-              const size = col.getSize();
-              const canSort = col.getCanSort();
-              const sort = col.getIsSorted();
-              return (
-                <div
-                  key={header.id}
-                  className="cell header-cell"
-                  style={{ width: size, position: 'relative' }}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => handleHeaderDrop(e, col.id)}
-                  draggable={!header.isPlaceholder}
-                  onDragStart={(e) => handleHeaderDragStart(e, col.id)}
-                >
-                  <button onClick={canSort ? col.getToggleSortingHandler() : undefined}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(col.columnDef.header, header.getContext())}
-                    {sort === 'asc' ? ' ▲' : sort === 'desc' ? ' ▼' : ''}
-                  </button>
-
-                  {col.getCanResize() && (
-                    <div
-                      className="resizer"
-                      onMouseDown={header.getResizeHandler()}
-                      onTouchStart={header.getResizeHandler()}
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ))}
-      </div>
+      <Header
+        table={table}
+        showFilters={showFilters}
+        onHeaderDragStart={handleHeaderDragStart}
+        onHeaderDrop={handleHeaderDrop}
+        isReorderableColumn={isReorderable}
+      />
 
       <div ref={parentRef} className="scroll">
         <div style={{ height: totalSize, position: 'relative' }}>
@@ -149,32 +52,8 @@ export function Grid<TData>(props: GridProps<TData>) {
           ) : (
             virtualItems.map((vi) => {
               const row = rows[vi.index];
-              const top = vi.start;
-
-              return (
-                <div
-                  key={row.id}
-                  className="row"
-                  style={{
-                    position: 'absolute',
-                    top,
-                    left: 0,
-                    right: 0,
-                    height: rowHeight,
-                  }}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <div
-                      key={cell.id}
-                      className="cell"
-                      style={{ width: cell.column.getSize() }}
-                      title={String(cell.getValue() ?? '')}
-                    >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </div>
-                  ))}
-                </div>
-              );
+              if (!row) return null;
+              return <Row key={row.id} row={row} top={vi.start} rowHeight={rowHeight} />;
             })
           )}
         </div>
