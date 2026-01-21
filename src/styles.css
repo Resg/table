@@ -10,7 +10,9 @@ body {
   color: #e8ecf3;
 }
 
-.container { padding: 16px; }
+.container {
+  padding: 16px;
+}
 
 .card {
   background: #121624;
@@ -19,7 +21,10 @@ body {
   padding: 12px;
 }
 
-.h1 { font-size: 18px; margin: 0 0 12px 0; }
+.h1 {
+  font-size: 18px;
+  margin: 0 0 12px 0;
+}
 
 .grid-shell {
   border: 1px solid #242b3d;
@@ -53,10 +58,18 @@ body {
   border-right: 1px solid #1b2233;
 }
 
-.cell:last-child { border-right: none; }
+.cell:last-child {
+  border-right: none;
+}
 
-.header-cell { font-weight: 600; user-select: none; }
-.header-cell button { all: unset; cursor: pointer; }
+.header-cell {
+  font-weight: 600;
+  user-select: none;
+}
+.header-cell button {
+  all: unset;
+  cursor: pointer;
+}
 
 .resizer {
   position: absolute;
@@ -73,4 +86,7 @@ body {
   position: relative;
 }
 
-.checkbox { width: 14px; height: 14px; }
+.checkbox {
+  width: 14px;
+  height: 14px;
+}

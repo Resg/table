@@ -1,10 +1,18 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
+import type { BaseQueryFn } from '@reduxjs/toolkit/query';
 import type { GridSettings } from '@/components/Grid/core/types';
 import { makePeople, type PersonRow } from '@/mocks/people';
 
 type PeopleArgs = { count: number };
 type SettingsArgs = { gridId: string };
 type SaveSettingsArgs = { gridId: string; settings: GridSettings };
+type BaseQueryArgs = {
+  url: string;
+  method?: 'GET' | 'POST';
+  body?: unknown;
+  params?: Record<string, unknown>;
+};
+type BaseQueryError = { status: number; data: unknown };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -15,7 +23,7 @@ const mockDb = {
 
 export const gridApi = createApi({
   reducerPath: 'gridApi',
-  baseQuery: async (arg: any) => {
+  baseQuery: (async (arg: BaseQueryArgs) => {
     const { url, method = 'GET', body, params } = arg ?? {};
     await sleep(120);
 
@@ -37,11 +45,11 @@ export const gridApi = createApi({
         return { data: { ok: true } };
       }
 
-      return { error: { status: 404, data: 'Not found' } as any };
-    } catch (e: any) {
-      return { error: { status: 500, data: String(e?.message ?? e) } as any };
+      return { error: { status: 404, data: 'Not found' } };
+    } catch (e) {
+      return { error: { status: 500, data: String((e as Error)?.message ?? e) } };
     }
-  },
+  }) as BaseQueryFn<BaseQueryArgs, unknown, BaseQueryError>,
   endpoints: (build) => ({
     getPeople: build.query<PersonRow[], PeopleArgs>({
       query: ({ count }) => ({ url: '/people', method: 'GET', params: { count } }),
@@ -50,7 +58,11 @@ export const gridApi = createApi({
       query: ({ gridId }) => ({ url: '/settings', method: 'GET', params: { gridId } }),
     }),
     saveSettings: build.mutation<{ ok: true }, SaveSettingsArgs>({
-      query: ({ gridId, settings }) => ({ url: '/settings', method: 'POST', body: { gridId, settings } }),
+      query: ({ gridId, settings }) => ({
+        url: '/settings',
+        method: 'POST',
+        body: { gridId, settings },
+      }),
     }),
   }),
 });

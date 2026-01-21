@@ -10,20 +10,23 @@ const GRID_ID = 'people-grid';
 const DEFAULT_SETTINGS: GridSettings = {
   version: 1,
   columnSizing: { select: 46, name: 220, age: 80, country: 100, department: 140 },
+  columnOrder: [],
   columnVisibility: {},
   sorting: [],
   rowSelection: {},
 };
 
-function useDebounced<T extends (...args: any[]) => void>(fn: T, wait = 250) {
+function useDebounced<T extends (..._args: any[]) => void>(fn: T, wait = 250) {
   const fnRef = React.useRef(fn);
-  fnRef.current = fn;
+  const timeoutRef = React.useRef<number | undefined>(undefined);
+  React.useEffect(() => {
+    fnRef.current = fn;
+  }, [fn]);
 
   return React.useMemo(() => {
-    let t: number | undefined;
     return (...args: Parameters<T>) => {
-      window.clearTimeout(t);
-      t = window.setTimeout(() => fnRef.current(...args), wait);
+      window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = window.setTimeout(() => fnRef.current(...args), wait);
     };
   }, [wait]);
 }
@@ -31,14 +34,24 @@ function useDebounced<T extends (...args: any[]) => void>(fn: T, wait = 250) {
 export function App() {
   const { data: people = [], isFetching: isFetchingPeople } = useGetPeopleQuery({ count: 20000 });
 
-  const { data: settingsData, isFetching: isFetchingSettings } = useGetSettingsQuery({ gridId: GRID_ID });
+  const { data: settingsData, isFetching: isFetchingSettings } = useGetSettingsQuery({
+    gridId: GRID_ID,
+  });
   const [saveSettings] = useSaveSettingsMutation();
 
   const [localSettings, setLocalSettings] = React.useState<GridSettings>(DEFAULT_SETTINGS);
 
   React.useEffect(() => {
     if (settingsData) {
-      setLocalSettings(settingsData);
+      setLocalSettings({
+        ...DEFAULT_SETTINGS,
+        ...settingsData,
+        columnSizing: settingsData.columnSizing ?? DEFAULT_SETTINGS.columnSizing,
+        columnOrder: settingsData.columnOrder ?? DEFAULT_SETTINGS.columnOrder,
+        columnVisibility: settingsData.columnVisibility ?? DEFAULT_SETTINGS.columnVisibility,
+        sorting: settingsData.sorting ?? DEFAULT_SETTINGS.sorting,
+        rowSelection: settingsData.rowSelection ?? DEFAULT_SETTINGS.rowSelection,
+      });
     } else {
       setLocalSettings(DEFAULT_SETTINGS);
     }

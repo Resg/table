@@ -1,6 +1,7 @@
 # Фичи и требования (база)
 
 ## Must-have для V1
+
 - Виртуализация строк (без “пустоты” при скролле)
 - Sticky header
 - Client sorting
@@ -13,6 +14,7 @@
   - rowSelection (опционально)
 
 ## Далее (V2+)
+
 - Фильтры: text + set/exclude
 - Дерево: parentId (expand/collapse all, selection propagation)
 - Grouping (tree-group)

@@ -26,9 +26,15 @@ export function Grid<TData>(props: GridProps<TData>) {
       sorting: settings.sorting,
       columnVisibility: settings.columnVisibility,
       columnSizing: settings.columnSizing,
+      columnOrder: settings.columnOrder,
       rowSelection: settings.rowSelection,
     },
     enableColumnResizing: true,
+    enableMultiSort: true,
+    isMultiSortEvent: (e) => {
+      if (!e || typeof e !== 'object') return false;
+      return 'ctrlKey' in e && Boolean((e as MouseEvent).ctrlKey);
+    },
     enableRowSelection: true,
     onSortingChange: (updater) => {
       const next = typeof updater === 'function' ? updater(settings.sorting) : updater;
@@ -41,6 +47,10 @@ export function Grid<TData>(props: GridProps<TData>) {
     onColumnSizingChange: (updater) => {
       const next = typeof updater === 'function' ? updater(settings.columnSizing) : updater;
       onSettingsChange({ ...settings, columnSizing: next });
+    },
+    onColumnOrderChange: (updater) => {
+      const next = typeof updater === 'function' ? updater(settings.columnOrder) : updater;
+      onSettingsChange({ ...settings, columnOrder: next });
     },
     onRowSelectionChange: (updater) => {
       const next = typeof updater === 'function' ? updater(settings.rowSelection) : updater;
@@ -64,6 +74,33 @@ export function Grid<TData>(props: GridProps<TData>) {
   const totalSize = rowVirtualizer.getTotalSize();
   const virtualItems = rowVirtualizer.getVirtualItems();
 
+  const handleHeaderDragStart = React.useCallback(
+    (e: React.DragEvent<HTMLDivElement>, columnId: string) => {
+      e.dataTransfer.setData('text/plain', columnId);
+      e.dataTransfer.effectAllowed = 'move';
+    },
+    []
+  );
+
+  const handleHeaderDrop = React.useCallback(
+    (e: React.DragEvent<HTMLDivElement>, targetId: string) => {
+      e.preventDefault();
+      const sourceId = e.dataTransfer.getData('text/plain');
+      if (!sourceId || sourceId === targetId) return;
+
+      const orderedIds = table.getAllLeafColumns().map((col) => col.id);
+      const fromIndex = orderedIds.indexOf(sourceId);
+      const toIndex = orderedIds.indexOf(targetId);
+      if (fromIndex === -1 || toIndex === -1) return;
+
+      const next = [...orderedIds];
+      next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, sourceId);
+      table.setColumnOrder(next);
+    },
+    [table]
+  );
+
   return (
     <div className="grid-shell">
       <div className="grid-header">
@@ -79,6 +116,10 @@ export function Grid<TData>(props: GridProps<TData>) {
                   key={header.id}
                   className="cell header-cell"
                   style={{ width: size, position: 'relative' }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => handleHeaderDrop(e, col.id)}
+                  draggable={!header.isPlaceholder}
+                  onDragStart={(e) => handleHeaderDragStart(e, col.id)}
                 >
                   <button onClick={canSort ? col.getToggleSortingHandler() : undefined}>
                     {header.isPlaceholder
