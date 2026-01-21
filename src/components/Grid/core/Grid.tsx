@@ -28,6 +28,7 @@ export function Grid<TData>(props: GridProps<TData>) {
       columnSizing: settings.columnSizing,
       rowSelection: settings.rowSelection,
     },
+    enableColumnResizing: true,
     enableRowSelection: true,
     onSortingChange: (updater) => {
       const next = typeof updater === 'function' ? updater(settings.sorting) : updater;
@@ -63,38 +64,41 @@ export function Grid<TData>(props: GridProps<TData>) {
   const totalSize = rowVirtualizer.getTotalSize();
   const virtualItems = rowVirtualizer.getVirtualItems();
 
-  const leafColumns = table.getVisibleLeafColumns();
-
   return (
     <div className="grid-shell">
       <div className="grid-header">
-        <div className="row">
-          {leafColumns.map((col) => {
-            const size = col.getSize();
-            const canSort = col.getCanSort();
-            const sort = col.getIsSorted();
-            return (
-              <div
-                key={col.id}
-                className="cell header-cell"
-                style={{ width: size, position: 'relative' }}
-              >
-                <button onClick={canSort ? col.getToggleSortingHandler() : undefined}>
-                  {flexRender(col.columnDef.header, col.getContext())}
-                  {sort === 'asc' ? ' ▲' : sort === 'desc' ? ' ▼' : ''}
-                </button>
+        {table.getHeaderGroups().map((hg) => (
+          <div key={hg.id} className="row">
+            {hg.headers.map((header) => {
+              const col = header.column;
+              const size = col.getSize();
+              const canSort = col.getCanSort();
+              const sort = col.getIsSorted();
+              return (
+                <div
+                  key={header.id}
+                  className="cell header-cell"
+                  style={{ width: size, position: 'relative' }}
+                >
+                  <button onClick={canSort ? col.getToggleSortingHandler() : undefined}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(col.columnDef.header, header.getContext())}
+                    {sort === 'asc' ? ' ▲' : sort === 'desc' ? ' ▼' : ''}
+                  </button>
 
-                {col.getCanResize() && (
-                  <div
-                    className="resizer"
-                    onMouseDown={col.getResizeHandler()}
-                    onTouchStart={col.getResizeHandler()}
-                  />
-                )}
-              </div>
-            );
-          })}
-        </div>
+                  {col.getCanResize() && (
+                    <div
+                      className="resizer"
+                      onMouseDown={header.getResizeHandler()}
+                      onTouchStart={header.getResizeHandler()}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </div>
 
       <div ref={parentRef} className="scroll">

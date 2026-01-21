@@ -34,11 +34,21 @@ export function App() {
   const { data: settingsData, isFetching: isFetchingSettings } = useGetSettingsQuery({ gridId: GRID_ID });
   const [saveSettings] = useSaveSettingsMutation();
 
-  const settings: GridSettings = settingsData ?? DEFAULT_SETTINGS;
+  const [localSettings, setLocalSettings] = React.useState<GridSettings>(DEFAULT_SETTINGS);
+
+  React.useEffect(() => {
+    if (settingsData) {
+      setLocalSettings(settingsData);
+    } else {
+      setLocalSettings(DEFAULT_SETTINGS);
+    }
+  }, [settingsData]);
 
   const debouncedSave = useDebounced((next: GridSettings) => {
     saveSettings({ gridId: GRID_ID, settings: next });
   }, 300);
+
+  const settings = localSettings;
 
   const columns = React.useMemo<ColumnDef<PersonRow, any>[]>(() => {
     return [
@@ -83,6 +93,7 @@ export function App() {
 
   const onSettingsChange = React.useCallback(
     (next: GridSettings) => {
+      setLocalSettings(next);
       debouncedSave(next);
     },
     [debouncedSave]
